@@ -1,337 +1,138 @@
 <!-- Code from d3-graph-gallery.com -->
 <!DOCTYPE html>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
 
-<!-- Load d3.js and the geo projection plugin -->
-<script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/d3-geo-projection@4"></script>
-<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
-<script type="text/javascript" src="/map_structure.js"></script>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
 
-<!-- Create an element where the map will take place -->
-<div id="map" class="map">
-</div>
+    <!-- Load d3.js and the geo projection plugin -->
+    <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-geo-projection@4"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <script type="text/javascript" src="/map_structure.js"></script>
 
-<style>
-    body {
-        margin: 0;
-    }
+    <style>
+        body {
+            margin: 0;
+        }
 
-    .map {
-        position: relative;
-        color: #333;
-        background-color: #e8fbff;
-    }
+        .map {
+            position: relative;
+            color: #333;
+            background-color: #e8fbff;
+        }
 
-    .map * {
-        box-sizing: border-box;
-        transform-box: fill-box;
-    }
+        .map * {
+            box-sizing: border-box;
+            transform-box: fill-box;
+        }
 
-    .map>svg {
-        display: block;
-        box-sizing: border-box;
-        margin: 0 auto;
-    }
+        .map>svg {
+            display: block;
+            box-sizing: border-box;
+            margin: 0 auto;
+        }
 
-    .pagi {
-        display: none;
-        position: absolute;
-        bottom: 0;
-        justify-content: center;
-        flex-wrap: wrap;
-        padding: 0 40px;
-        width: 100%;
-    }
-
-    .pagi-item {
-        list-style-type: none;
-        background-color: #7563ff;
-        border-radius: 50%;
-        width: 15px;
-        height: 15px;
-        cursor: pointer;
-        margin: 0 1px;
-    }
-
-    .popup {
-        opacity: 0;
-        visibility: hidden;
-        position: absolute;
-        border: 1px solid #848484;
-        width: 300px;
-        padding: 0 20px;
-        transform: translate(-50%, -100%);
-        transition: opacity .3s;
-
-        background-color: white;
-        border-radius: 20px;
-        box-shadow: 2px 2px 11px 0px rgba(87, 85, 87, 1);
-    }
-
-    .centerCircle,
-    .hoverCircle {
-        transform-origin: center;
-        transition: transform .5s;
-        perspective: 1000px;
-    }
-
-    .marker.active>.centerCircle {
-        transform: scale(4) rotateX(62deg);
-    }
-
-    .marker.active>.hoverCircle {
-        transform: scale(4) rotateX(62deg);
-        stroke-width: 0;
-    }
-
-    .popup:after {
-        content: '';
-        background-color: #fff;
-        width: 20px;
-        height: 20px;
-        position: absolute;
-        left: 50%;
-        bottom: -10px;
-        transform: translateX(-50%) rotate(45deg);
-        border: 1px solid #848484;
-        border-width: 0 1px 1px 0;
-    }
-
-    .popup.active {
-        opacity: 1;
-        visibility: visible;
-    }
-
-    @media screen and (max-width: 560px) {
         .pagi {
-            display: flex;
+            display: none;
+            position: absolute;
+            bottom: 0;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 0 40px;
+            width: 100%;
+        }
+
+        .pagi-item {
+            list-style-type: none;
+            background-color: #7563ff;
+            border-radius: 50%;
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+            margin: 0 1px;
         }
 
         .popup {
-            font-size: 12px;
-            transform: translate(-50%, -50%);
+            opacity: 0;
+            visibility: hidden;
+            position: absolute;
+            border: 1px solid #848484;
+            width: 300px;
+            padding: 0 20px;
+            transform: translate(-50%, -100%);
+            transition: opacity .3s;
+
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 2px 2px 11px 0px rgba(87, 85, 87, 1);
         }
-    }
-</style>
 
-<script>
-    const breakpointScreen = 560;
+        .centerCircle,
+        .hoverCircle {
+            transform-origin: center;
+            transition: transform .5s;
+            perspective: 1000px;
+        }
 
-    function isSP() {
-        return $(window).width() <= breakpointScreen;
-    }
+        .marker.active>.centerCircle {
+            transform: scale(4) rotateX(62deg);
+        }
 
-    function getScaleMap() {
-        return isSP() ? 2 : 1;
-    }
+        .marker.active>.hoverCircle {
+            transform: scale(4) rotateX(62deg);
+            stroke-width: 0;
+        }
 
-    function initBgPattern() {
-        const svg = d3.select("#map").append('svg');
+        .popup:after {
+            content: '';
+            background-color: #fff;
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            left: 50%;
+            bottom: -10px;
+            transform: translateX(-50%) rotate(45deg);
+            border: 1px solid #848484;
+            border-width: 0 1px 1px 0;
+        }
 
-        svg.attr("width", width).attr("height", height);
+        .popup.active {
+            opacity: 1;
+            visibility: visible;
+        }
 
-        svg.append('defs')
-            .append('pattern')
-            .attr('id', 'backgroundMap')
-            .attr('patternUnits', 'userSpaceOnUse')
-            .attr("width", width)
-            .attr("height", height)
-            .append('image')
-            .attr('href', "/img/map-background.jpg")
-            .attr('preserveAspectRatio', 'none')
-            .attr("width", width)
-            .attr("height", height)
-
-
-        gViewBox = svg.append("g").attr('class', 'mapCustom');
-    }
-
-    function initPaginationResponsive() {
-        $('.map').append(`<ul class="pagi"></ul>`)
-        const pagiQuery = $('.map > .pagi');
-
-        pagiQuery.html($('.marker').toArray().map(marker => `<li class="pagi-item" data-id=${marker.dataset.id}></li>`));
-
-        pagiQuery.on('click', '.pagi-item', function() {
-            const id = this.dataset.id;
-            const marker = $(`.marker[data-id="${id}"]`);
-            const circle = marker.find('.centerCircle')[0];
-            const lat = $(circle).attr('cx');
-            const lon = $(circle).attr('cy');
-            const newTranslate = {
-                x: -(lat * scale - width / 2),
-                y: -(lon * scale - height / 2 - (height * 0.25)),
-            };
-            const currentTransalte = new WebKitCSSMatrix(gViewBox.attr('transform'));
-
-            const timeTransition = 800;
-            const times = 800 / 10;
-            const distance = {
-                x: (newTranslate.x - currentTransalte.e) / times,
-                y: (newTranslate.y - currentTransalte.f) / times
+        @media screen and (max-width: 560px) {
+            .pagi {
+                display: flex;
             }
 
-            $(`.popup`).add('.marker').removeClass('active');
-
-            let count = 1;
-            const translateInterval = setInterval(() => {
-                gViewBox.attr('transform', `matrix(${scale}, 0, 0, ${scale}, ${currentTransalte.e + distance.x * count}, ${currentTransalte.f + distance.y * count})`);
-                console.log(count)
-                if (++count > times) {
-                    clearInterval(translateInterval);
-                    $(`.popup[data-id="${id}"]`).add(marker).addClass('active');
-                };
-            }, 10)
-        })
-
-        if (isSP()) {
-            setTimeout(() => {
-                pagiQuery.find('*')[0].click();
-            }, 500)
-        }
-    }
-
-    function initCountries() {
-        gViewBox.selectAll("path")
-            .data(WORLD_MAP_STRUCTURE.features)
-            .enter()
-            .append("path")
-            .attr("fill", "url(#backgroundMap)")
-            .attr("d", d3.geoPath()
-                .projection(projection)
-            )
-            .style("stroke", "none")
-            .style("stroke-width", "20")
-            .style("opacity", .5)
-    }
-
-    function initmarker() {
-        const marker = gViewBox.selectAll('.mapCustom')
-            .data(data)
-            .enter()
-            .append('g')
-            .attr('class', 'marker')
-            .attr('data-id', (d, index) => index)
-
-        marker.append("circle")
-            .attr('class', 'centerCircle')
-            .attr("cx", d => projection([+d.homelon, +d.homelat])[0])
-            .attr("cy", d => projection([+d.homelon, +d.homelat])[1])
-            .attr("r", circleSize)
-            .attr("fill", d => d.color)
-
-        marker.append("circle")
-            .attr('class', 'hoverCircle')
-            .attr("cx", d => projection([+d.homelon, +d.homelat])[0])
-            .attr("cy", d => projection([+d.homelon, +d.homelat])[1])
-            .attr("stroke", d => d.color)
-            .attr("stroke-width", 1)
-            .attr("r", circleSize + 5)
-            .attr("fill", d => d.color)
-            .attr('fill-opacity', .2)
-
-        $('.marker').each((index, circle) => {
-            const id = circle.dataset.id;
-            let pos = {};
-            if (isSP()) {
-                pos = {
-                    x: width / 2,
-                    y: height / 2 - circleSize * scale
-                };
-            } else {
-                pos = {
-                    x: $(circle).offset().left + circleSize,
-                    y: $(circle).offset().top + circleSize - 30,
-                }
+            .popup {
+                font-size: 12px;
+                transform: translate(-50%, -50%);
             }
-            let html = ``;
-            html += `<div class="popup" data-id="${id}">`;
-            html += `<p>Lorem Ipsum</p>`;
-            html += `<p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s</p>`;
-            html += `</div>`;
-            $('.map').append(html);
-            const spanNode = $('.map').find(`.popup[data-id="${id}"]`);
-            spanNode.css({
-                top: pos.y,
-                left: pos.x,
-            });
-        });
-
-        $('.map').on('mouseenter', '.marker', function() {
-            const id = $(this).attr('data-id');
-            $(`.popup[data-id="${id}"]`).addClass('active');
-            this.classList.add('active');
-        })
-
-        $('.map').on('mouseleave', '.marker', function() {
-            const id = $(this).attr('data-id');
-            $(`.popup[data-id="${id}"]`).removeClass('active');
-            this.classList.remove('active');
-        })
-    }
-
-    function setupVal() {
-        width = $(window).width() > maxWidth ? maxWidth : $(window).width();
-        height = width / WORLD_MAP_RATIO;
-        circleSize = isSP() ? width * 0.006 : width * 0.003;
-        scale = getScaleMap();
-        projection = d3.geoMercator()
-            .fitSize([width, height], WORLD_MAP_STRUCTURE);
-    }
-
-    function renderMap() {
-        setupVal();
-        initBgPattern();
-        initCountries();
-        initmarker();
-        initPaginationResponsive();
-
-        gViewBox.attr('transform', `matrix(${scale}, 0, 0, ${scale}, 0, 0)`);
-    }
-
-    const WORLD_MAP_STRUCTURE = JSON.parse(map_structure);
-    const WORLD_MAP_RATIO = 1.546;
-    const maxWidth = 1920;
-    let width, height, circleSize, scale, projection;
-    let gViewBox = null;
-    const data = [{
-            id: 1,
-            homelat: -12.25,
-            homelon: -59.65,
-            title: 'Brazil',
-            n: 3000,
-            color: '#7563ff'
-        },
-        {
-            id: 2,
-            homelat: 15.40,
-            homelon: 105,
-            title: 'VietNam',
-            n: 3000,
-            color: '#7563ff'
-        },
-        {
-            id: 3,
-            homelat: -25.46,
-            homelon: 132.30,
-            title: 'Australia',
-            n: 3000,
-            color: '#7563ff'
         }
-    ];
+    </style>
+</head>
 
-    renderMap();
+<body>
+    <!-- Create an element where the map will take place -->
+    <div id="map" class="map">
+    </div>
 
-    let timeoutResize;
-    $(window).on('resize', function() {
-        clearTimeout(timeoutResize);
+    <script type="module">
+        import GlobalMapMarker from '/globalMapMarker.js';
 
-        timeoutResize = setTimeout(function() {
-            $('.map').html('');
-            renderMap();
-        }, 500);
-    })
-</script>
+        const options = {
+            width: $(window).width(),
+            maxWidth: 1920,
+            scaleSP: 2,
+            markerSize: 0.003, // %
+            breakpoint: 520,
+        }
+        const globalMapMarker = new GlobalMapMarker(options);
+        globalMapMarker.init(".map");
+        
+    </script>
+</body>
