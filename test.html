@@ -9,8 +9,9 @@
     <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-geo-projection@4"></script>
-    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <!-- <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script> -->
     <script type="text/javascript" src="/map_structure.js"></script>
+    <link rel="stylesheet" href="/globalMapMarker.css"></link>
 
     <style>
         body {
@@ -23,45 +24,18 @@
             background-color: #e8fbff;
         }
 
-        .map * {
-            box-sizing: border-box;
-            transform-box: fill-box;
-        }
-
         .map>svg {
             display: block;
             box-sizing: border-box;
             margin: 0 auto;
         }
-
-        .pagi {
-            display: none;
-            position: absolute;
-            bottom: 0;
-            justify-content: center;
-            flex-wrap: wrap;
-            padding: 0 40px;
-            width: 100%;
-        }
-
-        .pagi-item {
-            list-style-type: none;
-            background-color: #7563ff;
-            border-radius: 50%;
-            width: 15px;
-            height: 15px;
-            cursor: pointer;
-            margin: 0 1px;
-        }
-
         .popup {
             opacity: 0;
             visibility: hidden;
-            position: absolute;
             border: 1px solid #848484;
             width: 300px;
             padding: 0 20px;
-            transform: translate(-50%, -100%);
+            transform: translate(0, calc(-50% - 30px));
             transition: opacity .3s;
 
             background-color: white;
@@ -104,13 +78,9 @@
         }
 
         @media screen and (max-width: 560px) {
-            .pagi {
-                display: flex;
-            }
-
             .popup {
                 font-size: 12px;
-                transform: translate(-50%, -50%);
+                transform: translate(0);
             }
         }
     </style>
@@ -119,6 +89,46 @@
 <body>
     <!-- Create an element where the map will take place -->
     <div id="map" class="map">
+        <div class="gmm-list">
+            <div class="gmm-item" latitude="-12.25" longitude="-59.65">
+                <div class="gmm-popup-item popup">
+                    <p>Lorem Ipsum</p>
+                    <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s</p>
+                </div>
+                <g class="gmm-marker marker">
+                    <circle class="centerCircle" fill="#7563ff" r="3"></circle>
+                    <circle class="hoverCircle" stroke="#7563ff" stroke-width="1" fill="#7563ff" fill-opacity="0.2" r="8"></circle>
+                </g>
+                
+            </div>
+            <div class="gmm-item" latitude="15.40" longitude="105">
+                <div class="gmm-popup-item popup">
+                    <p>Lorem Ipsum</p>
+                    <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s</p>
+                </div>
+                <g class="gmm-marker marker">
+                    <circle class="centerCircle" fill="#7563ff" r="3"></circle>
+                    <circle class="hoverCircle" stroke="#7563ff" stroke-width="1" fill="#7563ff" fill-opacity="0.2" r="8"></circle>
+                </g>
+                
+            </div>
+            <div class="gmm-item" latitude="-25.46" longitude="132.30">
+                <div class="gmm-popup-item popup">
+                    <p>Lorem Ipsum</p>
+                    <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s</p>
+                </div>
+                <g class="gmm-marker marker">
+                    <circle class="centerCircle" fill="#7563ff" r="3"></circle>
+                    <circle class="hoverCircle" stroke="#7563ff" stroke-width="1" fill="#7563ff" fill-opacity="0.2" r="8"></circle>
+                </g>
+            </div>
+        </div>
+        <div class="gmm-pagination">
+            <div class="gmm-pagination-item"></div>
+            <div class="gmm-pagination-item"></div>
+            <div class="gmm-pagination-item"></div>
+        </div>
+    </div>
     </div>
 
     <script type="module">
@@ -129,10 +139,13 @@
             maxWidth: 1920,
             scaleSP: 2,
             markerSize: 0.003, // %
-            breakpoint: 520,
+            breakpoint: 560,
+            translateSP: {
+                x: 0,
+                y: 100
+            }
         }
         const globalMapMarker = new GlobalMapMarker(options);
         globalMapMarker.init(".map");
-        
     </script>
 </body>

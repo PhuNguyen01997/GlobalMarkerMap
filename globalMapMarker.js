@@ -18,31 +18,10 @@ export default class GlobalMapMarker {
       scale: null,
       breakpoint: 480,
       markerSize: null,
-      data: [{
-          id: 1,
-          homelat: -12.25,
-          homelon: -59.65,
-          title: 'Brazil',
-          n: 3000,
-          color: '#7563ff'
-        },
-        {
-          id: 2,
-          homelat: 15.40,
-          homelon: 105,
-          title: 'VietNam',
-          n: 3000,
-          color: '#7563ff'
-        },
-        {
-          id: 3,
-          homelat: -25.46,
-          homelon: 132.30,
-          title: 'Australia',
-          n: 3000,
-          color: '#7563ff'
-        }
-      ]
+      translateSP: {
+        x: 0,
+        y: 0
+      }
     }
 
     Object.keys(obj).forEach(key => {
@@ -55,11 +34,50 @@ export default class GlobalMapMarker {
   init(selection) {
     this._selection = selection
     this._container = $(this._selection);
+    this._htmlData = this._container.find('.gmm-item').toArray().reduce((arr, element, index) => {
+      const latitude = $(element).attr('latitude');
+      const longitude = $(element).attr('longitude');
+      const x = this._projection([longitude, latitude])[0];
+      const y = this._projection([longitude, latitude])[1];
+
+      let marker = $(element).find('.gmm-marker');
+      let markerChildren = marker.children();
+      markerChildren.attr("cx", x)
+      markerChildren.attr("cy", y)
+
+      let pagiItem = $(`${this._selection} .gmm-pagination .gmm-pagination-item`)[index];
+      $(pagiItem).attr('data-id', index);
+
+      const item = {
+        id: index,
+        latitude,
+        longitude,
+        x,
+        y,
+        popup: $(element).find('.gmm-popup-item')[0],
+        marker: marker[0],
+        pagiItem: pagiItem[0],
+      }
+      arr.push(item);
+
+      return arr;
+    }, []);
 
     this._initBgPattern();
     this._initGlobalMap();
     this._initMarker();
+    this._initPopup();
     this._initPaginationOnSP();
+
+    this._container.children('.gmm-list').remove();
+  }
+
+  getWidth() {
+    return this._currentWidth;
+  }
+
+  getHeight() {
+    return this._currentHeight;
   }
 
   _setup() {
@@ -80,10 +98,23 @@ export default class GlobalMapMarker {
     return this.options.width <= this.options.breakpoint;
   }
 
+  _convertDOMToString(htmlNode) {
+    let result = '';
+    if (Object.prototype.toString.call(htmlNode) === '[object Array]') {
+      htmlNode.forEach(node => {
+        result += node.outerHTML;
+      })
+    } else {
+      result = htmlNode.outerHTML;
+    }
+    return result;
+  }
+
   _initBgPattern() {
     this._svgViewBox = d3.select(this._selection).append('svg')
       .attr("width", this._currentWidth)
       .attr("height", this._currentHeight)
+      .attr("class", "gmm-svg")
 
     this._svgViewBox.append('defs')
       .append('pattern')
@@ -98,7 +129,7 @@ export default class GlobalMapMarker {
       .attr("height", this._currentHeight)
 
     this._gViewBox = this._svgViewBox.append("g")
-      .attr('class', 'mapCustom')
+      .attr('class', 'gmm-g-custom')
       .attr('transform', `matrix(${this._scale}, 0, 0, ${this._scale}, 0, 0)`)
   }
 
@@ -115,9 +146,9 @@ export default class GlobalMapMarker {
       .style("stroke-width", "20")
       .style("opacity", .5)
 
-    const firstPath = $('.mapCustom path')[0];
+    const firstPath = $('.gmm-g-custom path')[0];
     let fullAllPathStr = ''
-    $('.mapCustom path').each((index, path) => {
+    $('.gmm-g-custom path').each((index, path) => {
       if (index !== 0) {
         fullAllPathStr += ' ';
       }
@@ -127,91 +158,69 @@ export default class GlobalMapMarker {
 
     this._gViewBox.selectAll("*").remove();
 
-    $('.mapCustom').append(firstPath);
+    $('.gmm-g-custom').append(firstPath);
   }
 
   _initMarker() {
-    const marker = this._gViewBox.selectAll('*')
-      .data(this.options.data)
-      .enter()
-      .append('g')
-      .attr('class', 'marker')
-      .attr('data-id', (d, index) => index)
+    this._htmlData.forEach(element => {
+      const markerChildren = $(element.marker).children().toArray();
+      const classList = element.marker.classList.value;
 
-    marker.append("circle")
-      .attr('class', 'centerCircle')
-      .attr("cx", d => this._projection([+d.homelon, +d.homelat])[0])
-      .attr("cy", d => this._projection([+d.homelon, +d.homelat])[1])
-      .attr("r", this._markerSize)
-      .attr("fill", d => d.color)
+      const gMarker = this._gViewBox
+        .append('g')
+        .attr('class', classList)
+        .attr('data-id', element.id)
+        .html(this._convertDOMToString(markerChildren));
+    })
+  }
 
-    marker.append("circle")
-      .attr('class', 'hoverCircle')
-      .attr("cx", d => this._projection([+d.homelon, +d.homelat])[0])
-      .attr("cy", d => this._projection([+d.homelon, +d.homelat])[1])
-      .attr("stroke", d => d.color)
-      .attr("stroke-width", 1)
-      .attr("r", this._markerSize + 5)
-      .attr("fill", d => d.color)
-      .attr('fill-opacity', .2)
+  _initPopup() {
+    this._container.prepend('<div class="gmm-popup"></div>');
+    const popupContainer = $('.gmm-popup');
+    this._htmlData.forEach(item => {
+      const popup = item.popup;
+      const eleCenter = $(`.gmm-g-custom .gmm-marker[data-id="${item.id}"] > *`)[0];
 
-    $('.marker').each((index, circle) => {
-      const id = circle.dataset.id;
-      let pos = {};
+      let position;
       if (this._isOnSP()) {
-        pos = {
-          x: this._currentWidth / 2,
-          y: this._currentHeight / 2 - this._markerSize * this._scale
-        };
+        position = {
+          x: (this._container.width() - $(popup).outerWidth()) / 2,
+          y: (this._container.height() - $(popup).outerHeight()) / 2,
+        }
       } else {
-        pos = {
-          x: $(circle).offset().left + this._markerSize,
-          y: $(circle).offset().top + this._markerSize - 30,
+        position = {
+          x: $(eleCenter).offset().left + parseFloat($(eleCenter).attr("r")) - $(popup).outerWidth() / 2,
+          y: $(eleCenter).offset().top + parseFloat($(eleCenter).attr("r")) - $(popup).outerHeight() / 2,
         }
       }
-      let html = ``;
-      html += `<div class="popup" data-id="${id}">`;
-      html += `<p>Lorem Ipsum</p>`;
-      html += `<p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s</p>`;
-      html += `</div>`;
-      $('.map').append(html);
-      const spanNode = $('.map').find(`.popup[data-id="${id}"]`);
-      spanNode.css({
-        top: pos.y,
-        left: pos.x,
-      });
-    });
+      $(popup).css({
+        left: position.x,
+        top: position.y,
+      })
 
-    $(this._selection).on('mouseenter', '.marker', function() {
-      const id = $(this).attr('data-id');
-      $(`.popup[data-id="${id}"]`).addClass('active');
-      this.classList.add('active');
-    })
+      $(popup).attr('data-id', item.id);
 
-    $(this._selection).on('mouseleave', '.marker', function() {
-      const id = $(this).attr('data-id');
-      $(`.popup[data-id="${id}"]`).removeClass('active');
-      this.classList.remove('active');
+      popupContainer.append(popup);
     })
   }
 
   _initPaginationOnSP() {
-    $(this._selection).append(`<ul class="pagi"></ul>`)
-    const pagiQuery = $(`${this._selection} > .pagi`);
-
-    pagiQuery.html($('.marker').toArray().map(marker => `<li class="pagi-item" data-id=${marker.dataset.id}></li>`));
-
     const instance = this;
-    pagiQuery.on('click', '.pagi-item', function() {
+    let isProcess = false;
+    this._container.on('click', '.gmm-pagination-item', function() {
+      if (isProcess || this.classList.contains('active')) return;
+
+      isProcess = true;
+      $('.gmm-pagination-item').removeClass('active');
+      this.classList.add('active');
+
       const id = this.dataset.id;
-      const marker = $(`.marker[data-id="${id}"]`);
-      const circle = marker.find('.centerCircle')[0];
-      const lat = $(circle).attr('cx');
-      const lon = $(circle).attr('cy');
+      const data = instance._htmlData.filter(d => d.id === parseInt(id))[0];
       const newTranslate = {
-        x: -(lat * instance._scale - instance._currentWidth / 2),
-        y: -(lon * instance._scale - instance._currentHeight / 2 - (instance._currentHeight * 0.25)),
+        x: -(data.x * instance._scale - instance._currentWidth / 2) + instance.options.translateSP.x,
+        y: -(data.y * instance._scale - instance._currentHeight / 2) + instance.options.translateSP.y,
       };
+
       const currentTransalte = new WebKitCSSMatrix(instance._gViewBox.attr('transform'));
 
       const timeTransition = 800;
@@ -221,21 +230,22 @@ export default class GlobalMapMarker {
         y: (newTranslate.y - currentTransalte.f) / times
       }
 
-      $(`.popup`).add('.marker').removeClass('active');
+      $(`.gmm-popup-item`).add('.gmm-marker').removeClass('active');
 
       let count = 1;
       const translateInterval = setInterval(() => {
         instance._gViewBox.attr('transform', `matrix(${instance._scale}, 0, 0, ${instance._scale}, ${currentTransalte.e + distance.x * count}, ${currentTransalte.f + distance.y * count})`);
         if (++count > times) {
           clearInterval(translateInterval);
-          $(`.popup[data-id="${id}"]`).add(marker).addClass('active');
+          $(`.gmm-popup-item[data-id="${id}"]`).add(`.gmm-marker[data-id="${id}"]`).addClass('active');
+          isProcess = false;
         };
       }, 10)
     })
 
     if (instance._isOnSP()) {
       setTimeout(() => {
-        pagiQuery.find('*')[0].click();
+        $('.gmm-pagination').children('*')[0].click();
       }, 500)
     }
   }
