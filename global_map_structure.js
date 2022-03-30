@@ -1,4 +1,4 @@
-map_structure = `{
+export const global_map_structure = `{
     "type": "FeatureCollection",
     "features": [
       {
@@ -42642,4 +42642,4 @@ map_structure = `{
         "id": "ZWE"
       }
     ]
-  }`
+  }`;

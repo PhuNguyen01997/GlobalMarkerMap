@@ -6,12 +6,11 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
 
     <!-- Load d3.js and the geo projection plugin -->
-    <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="./plugins/jquery-3.6/jquery-3.6.0.min.js"></script>
+    <script src="./plugins/d3-7.4/dist/d3.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-geo-projection@4"></script>
-    <!-- <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script> -->
-    <script type="text/javascript" src="/map_structure.js"></script>
-    <link rel="stylesheet" href="/globalMapMarker.css"></link>
+    <link rel="stylesheet" href="/globalMapMarker.css">
+    </link>
 
     <style>
         body {
@@ -29,18 +28,41 @@
             box-sizing: border-box;
             margin: 0 auto;
         }
+
         .popup {
-            opacity: 0;
-            visibility: hidden;
             border: 1px solid #848484;
             width: 300px;
             padding: 0 20px;
-            transform: translate(0, calc(-50% - 30px));
-            transition: opacity .3s;
-
             background-color: white;
             border-radius: 20px;
             box-shadow: 2px 2px 11px 0px rgba(87, 85, 87, 1);
+            perspective: 1000px;
+            transform: translate(0, calc(-50% - 30px)) rotateY(90deg);
+            transition: transform .5s;
+        }
+
+        .popup:after {
+            opacity: 0;
+            content: '';
+            background-color: #fff;
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            left: 50%;
+            bottom: -10px;
+            transform: translateX(-50%) rotate(45deg);
+            border: 1px solid #848484;
+            border-width: 0 1px 1px 0;
+            transition: opacity .5s;
+            transition-delay: .5s;
+        }
+
+        .popup.active {
+            transform: translate(0, calc(-50% - 30px)) rotateY(0deg);
+        }
+
+        .popup.active::after {
+            opacity: 1;
         }
 
         .centerCircle,
@@ -58,29 +80,28 @@
             transform: scale(4) rotateX(62deg);
             stroke-width: 0;
         }
-
-        .popup:after {
-            content: '';
-            background-color: #fff;
-            width: 20px;
-            height: 20px;
-            position: absolute;
-            left: 50%;
-            bottom: -10px;
-            transform: translateX(-50%) rotate(45deg);
-            border: 1px solid #848484;
-            border-width: 0 1px 1px 0;
+        
+        .pagiList{
+            bottom: 10px;
         }
 
-        .popup.active {
-            opacity: 1;
-            visibility: visible;
+        .pagiItem {
+            background-color: red;
         }
 
         @media screen and (max-width: 560px) {
             .popup {
                 font-size: 12px;
-                transform: translate(0);
+                transform: translate(0) rotateY(90deg);
+                transition: .3s;
+            }
+
+            .popup::after{
+                transition-delay: .3s;
+            }
+
+            .popup.active {
+                transform: rotateY(0deg);
             }
         }
     </style>
@@ -96,10 +117,10 @@
                     <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s</p>
                 </div>
                 <g class="gmm-marker marker">
-                    <circle class="centerCircle" fill="#7563ff" r="3"></circle>
-                    <circle class="hoverCircle" stroke="#7563ff" stroke-width="1" fill="#7563ff" fill-opacity="0.2" r="8"></circle>
+                    <circle class="centerCircle" fill="#7c0719" r="3"></circle>
+                    <circle class="hoverCircle" stroke="#7c0719" stroke-width="1" fill="#7c0719" fill-opacity="0.2" r="8"></circle>
                 </g>
-                
+
             </div>
             <div class="gmm-item" latitude="15.40" longitude="105">
                 <div class="gmm-popup-item popup">
@@ -110,7 +131,7 @@
                     <circle class="centerCircle" fill="#7563ff" r="3"></circle>
                     <circle class="hoverCircle" stroke="#7563ff" stroke-width="1" fill="#7563ff" fill-opacity="0.2" r="8"></circle>
                 </g>
-                
+
             </div>
             <div class="gmm-item" latitude="-25.46" longitude="132.30">
                 <div class="gmm-popup-item popup">
@@ -118,15 +139,15 @@
                     <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s</p>
                 </div>
                 <g class="gmm-marker marker">
-                    <circle class="centerCircle" fill="#7563ff" r="3"></circle>
-                    <circle class="hoverCircle" stroke="#7563ff" stroke-width="1" fill="#7563ff" fill-opacity="0.2" r="8"></circle>
+                    <circle class="centerCircle" fill="#7f00ff" r="3"></circle>
+                    <circle class="hoverCircle" stroke="#7f00ff" stroke-width="1" fill="#7f00ff" fill-opacity="0.2" r="8"></circle>
                 </g>
             </div>
         </div>
-        <div class="gmm-pagination">
-            <div class="gmm-pagination-item"></div>
-            <div class="gmm-pagination-item"></div>
-            <div class="gmm-pagination-item"></div>
+        <div class="gmm-pagination pagiList">
+            <div class="gmm-pagination-item pagiItem"></div>
+            <div class="gmm-pagination-item pagiItem"></div>
+            <div class="gmm-pagination-item pagiItem"></div>
         </div>
     </div>
     </div>
@@ -142,10 +163,31 @@
             breakpoint: 560,
             translateSP: {
                 x: 0,
-                y: 100
+                y: 100,
+                transitionTime: 500
             }
         }
-        const globalMapMarker = new GlobalMapMarker(options);
-        globalMapMarker.init(".map");
+        const globalMapMarker = new GlobalMapMarker('.map', options);
+        globalMapMarker.init();
+
+        let timeoutResize;
+        window.onresize = () => {
+            clearTimeout(timeoutResize);
+            timeoutResize = setTimeout(() => {
+                globalMapMarker.setOptions({
+                    width: $(window).width(),
+                })
+                globalMapMarker.init();
+            }, 500);
+        }
+
+        $(document).on('mouseenter', '.marker', function(){
+            const id = this.dataset.id;
+            $(`.popup[data-id="${id}"]`).addClass('active');
+        })
+
+        $(document).on('mouseleave', '.marker', function(){
+            $(`.popup`).removeClass('active');
+        })
     </script>
 </body>

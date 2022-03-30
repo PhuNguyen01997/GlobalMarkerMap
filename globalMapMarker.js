@@ -1,3 +1,7 @@
+import {
+  global_map_structure
+} from './global_map_structure.js';
+
 export default class GlobalMapMarker {
   _worldMapStructure;
   _worldMapRatio;
@@ -8,32 +12,67 @@ export default class GlobalMapMarker {
   _projection;
   _selection;
   _container;
+  _startContainer;
   _gViewBox;
   _svgViewBox;
 
-  constructor(obj) {
+  constructor(elementStr, obj) {
     this.options = {
       width: null,
       maxWidth: 1920,
-      scale: null,
-      breakpoint: 480,
+      scaleSP: null,
       markerSize: null,
+      breakpoint: 480,
       translateSP: {
         x: 0,
-        y: 0
+        y: 0,
+        transitionTime: 500
       }
     }
 
+    if (!this._startContainer) this._startContainer = $(elementStr).clone();
+
+    this._selection = elementStr;
+    this._setup(elementStr, obj);
+  }
+
+  init() {
+    this._container.empty();
+
+    this._initBgPattern();
+    this._initGlobalMap();
+    this._initMarker();
+    this._initPopup();
+    this._initPaginationOnSP();
+  }
+
+  getWidth() {
+    return this._currentWidth;
+  }
+
+  getHeight() {
+    return this._currentHeight;
+  }
+
+  setOptions(optionsParam) {
+    this._setup(this._selection, optionsParam);
+  }
+
+  _setup(elementStr, obj) {
     Object.keys(obj).forEach(key => {
       this.options[key] = obj[key];
     })
 
-    this._setup();
-  }
+    $(elementStr).replaceWith(this._startContainer.clone());
+    this._container = $(elementStr);
 
-  init(selection) {
-    this._selection = selection
-    this._container = $(this._selection);
+    this._worldMapStructure = JSON.parse(global_map_structure);
+    this._worldMapRatio = 1.546;
+    this._currentWidth = this.options.width > this.options.maxWidth ? this.options.maxWidth : this.options.width;
+    this._currentHeight = this._currentWidth / this._worldMapRatio;
+    this._scale = this._isOnSP() ? this.options.scaleSP : 1;
+    this._markerSize = this._currentWidth * (this._isOnSP() ? this.options.markerSize * this._scale : this.options.markerSize)
+    this._projection = d3.geoMercator().fitSize([this._currentWidth, this._currentHeight], this._worldMapStructure);
     this._htmlData = this._container.find('.gmm-item').toArray().reduce((arr, element, index) => {
       const latitude = $(element).attr('latitude');
       const longitude = $(element).attr('longitude');
@@ -48,46 +87,26 @@ export default class GlobalMapMarker {
       let pagiItem = $(`${this._selection} .gmm-pagination .gmm-pagination-item`)[index];
       $(pagiItem).attr('data-id', index);
 
+      let popup = $(element).find('.gmm-popup-item')[0];
+
       const item = {
         id: index,
         latitude,
         longitude,
         x,
         y,
-        popup: $(element).find('.gmm-popup-item')[0],
+        popup: {
+          element: popup,
+          width: $(popup).outerWidth(),
+          height: $(popup).outerHeight(),
+        },
         marker: marker[0],
-        pagiItem: pagiItem[0],
+        pagiItem,
       }
       arr.push(item);
 
       return arr;
     }, []);
-
-    this._initBgPattern();
-    this._initGlobalMap();
-    this._initMarker();
-    this._initPopup();
-    this._initPaginationOnSP();
-
-    this._container.children('.gmm-list').remove();
-  }
-
-  getWidth() {
-    return this._currentWidth;
-  }
-
-  getHeight() {
-    return this._currentHeight;
-  }
-
-  _setup() {
-    this._worldMapStructure = JSON.parse(map_structure);
-    this._worldMapRatio = 1.546;
-    this._currentWidth = this.options.width > this.options.maxWidth ? this.options.maxWidth : this.options.width;
-    this._currentHeight = this._currentWidth / this._worldMapRatio;
-    this._scale = this._isOnSP() ? this.options.scaleSP : 1;
-    this._markerSize = this._currentWidth * (this._isOnSP() ? this.options.markerSize * this._scale : this.options.markerSize)
-    this._projection = d3.geoMercator().fitSize([this._currentWidth, this._currentHeight], this._worldMapStructure);
   }
 
   _getFitHeight(width) {
@@ -184,34 +203,45 @@ export default class GlobalMapMarker {
       let position;
       if (this._isOnSP()) {
         position = {
-          x: (this._container.width() - $(popup).outerWidth()) / 2,
-          y: (this._container.height() - $(popup).outerHeight()) / 2,
+          x: (this._container.width() - popup.width) / 2,
+          y: (this._container.height() - popup.height) / 2,
         }
       } else {
         position = {
-          x: $(eleCenter).offset().left + parseFloat($(eleCenter).attr("r")) - $(popup).outerWidth() / 2,
-          y: $(eleCenter).offset().top + parseFloat($(eleCenter).attr("r")) - $(popup).outerHeight() / 2,
+          x: $(eleCenter).offset().left + parseFloat($(eleCenter).attr("r")) - popup.width / 2,
+          y: $(eleCenter).offset().top + parseFloat($(eleCenter).attr("r")) - popup.height / 2,
         }
       }
-      $(popup).css({
+      $(popup.element).css({
         left: position.x,
         top: position.y,
       })
 
-      $(popup).attr('data-id', item.id);
+      $(popup.element).attr('data-id', item.id);
 
-      popupContainer.append(popup);
+      popupContainer.append(popup.element);
     })
   }
 
   _initPaginationOnSP() {
+
+    if ($(window).width() > this.options.breakpoint) return;
+
+    const pagiQuery = this._startContainer.find('.gmm-pagination').clone();
+    pagiQuery.empty();
+    this._container.append(pagiQuery);
+
+    this._htmlData.forEach(element => {
+      pagiQuery.append(element.pagiItem);
+    });
+
     const instance = this;
     let isProcess = false;
     this._container.on('click', '.gmm-pagination-item', function() {
       if (isProcess || this.classList.contains('active')) return;
 
       isProcess = true;
-      $('.gmm-pagination-item').removeClass('active');
+      pagiQuery.find('.gmm-pagination-item').removeClass('active');
       this.classList.add('active');
 
       const id = this.dataset.id;
@@ -223,8 +253,7 @@ export default class GlobalMapMarker {
 
       const currentTransalte = new WebKitCSSMatrix(instance._gViewBox.attr('transform'));
 
-      const timeTransition = 800;
-      const times = timeTransition / 10;
+      const times = instance.options.translateSP.transitionTime / 10;
       const distance = {
         x: (newTranslate.x - currentTransalte.e) / times,
         y: (newTranslate.y - currentTransalte.f) / times
